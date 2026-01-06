@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>FlowMind</title>
+  <script>
+    // Store the original path before redirect
+    sessionStorage.redirect = location.pathname + location.search;
+  </script>
+  <meta http-equiv="refresh" content="0;URL='/FlowMind-FE/index.html'">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .message {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <h1>Loading FlowMind...</h1>
+    <p>Redirecting to the app.</p>
+  </div>
+</body>
+</html>
