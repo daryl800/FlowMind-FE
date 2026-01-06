@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "build:web": "expo export --platform web",
-    "deploy": "npm run build:web && npx gh-pages -d dist"
+    "postbuild:web": "node scripts/setup-gh-pages.js",
+    "deploy": "npm run build:web && npx gh-pages -d dist --dotfiles"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -49,6 +50,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "express": "^5.2.1",
     "gh-pages": "^6.3.0",
     "typescript": "~5.9.2"
   },
