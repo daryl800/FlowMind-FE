@@ -13,10 +13,7 @@ import {
 } from "react-native";
 import ModalSelector from "react-native-modal-selector";
 
-const { height, width } = useWindowDimensions();
-
-const [hour, setHour] = useState("12:00"); // default 不知道
-
+// --- Constants ---
 const locations = [
     { label: "香港", value: "Asia/Hong_Kong" },
     { label: "上海", value: "Asia/Shanghai" },
@@ -28,30 +25,31 @@ const locations = [
     { label: "倫敦", value: "Europe/London" },
 ];
 
-// Time selection: 不知道 + quick + exact hours
 const timeItems = [
-    { key: "12:00", label: "不知道" },       // default → 12:00
+    { key: "12:00", label: "不知道" },
     { key: "03:00", label: "午夜 (00:00-05:59)" },
     { key: "09:00", label: "早上 (06:00-11:59)" },
     { key: "14:00", label: "下午 (12:00-17:59)" },
     { key: "21:00", label: "晚上 (18:00-23:59)" },
-    // exact hours 00:00 → 23:00
     ...Array.from({ length: 24 }, (_, i) => {
         const hh = i.toString().padStart(2, "0");
         return { key: `${hh}:00`, label: `${hh}:00` };
     }),
 ];
 
-
+// --- Component ---
 export const ProfileForm = () => {
     const router = useRouter();
+    const { height } = useWindowDimensions();
 
-    const [date, setDate] = useState(""); // birth date
-    const [hour, setHour] = useState("12"); // default 不知道
+    // --- State ---
+    const [date, setDate] = useState(""); // YYYY-MM-DD
+    const [hour, setHour] = useState("12:00"); // default 不知道
     const [location, setLocation] = useState("Asia/Hong_Kong");
     const [gender, setGender] = useState<"男" | "女" | "">("");
     const [submitting, setSubmitting] = useState(false);
 
+    // --- Handlers ---
     const submit = async () => {
         if (!date || !gender) return;
 
@@ -73,7 +71,7 @@ export const ProfileForm = () => {
         }, 800);
     };
 
-
+    // --- Render ---
     return (
         <View style={styles.container}>
             {/* Birth Date */}
@@ -91,16 +89,21 @@ export const ProfileForm = () => {
             </View>
 
             {/* Time Selection */}
-            <ModalSelector
-                data={timeItems}
-                initValue="選擇時辰"
-                onChange={(option) => setHour(option.key)} // ✅ DIRECT
-                style={styles.modalSelector}
-                selectTextStyle={{ color: "#fff" }}
-                optionTextStyle={{ color: "#000" }}
-                cancelText="取消"
-                optionContainerStyle={{ maxHeight: height * 0.3 }}
-            />
+            <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                    <CalendarDays size={16} color="#FFA500" /> 出生時辰
+                </Text>
+                <ModalSelector
+                    data={timeItems}
+                    initValue="選擇時辰"
+                    onChange={(option) => setHour(option.key)}
+                    style={styles.modalSelector}
+                    selectTextStyle={{ color: hour === "" ? "#888" : "#fff" }}
+                    optionTextStyle={{ color: "#000" }}
+                    cancelText="取消"
+                    optionContainerStyle={{ maxHeight: height * 0.3 }}
+                />
+            </View>
 
             {/* Location */}
             <View style={styles.inputGroup}>
@@ -112,7 +115,7 @@ export const ProfileForm = () => {
                     initValue="選擇出生地點"
                     onChange={(option) => setLocation(option.key)}
                     style={styles.modalSelector}
-                    selectTextStyle={{ color: "#fff" }}
+                    selectTextStyle={{ color: location === "" ? "#888" : "#fff" }}
                     optionTextStyle={{ color: "#000" }}
                     cancelText="取消"
                     optionContainerStyle={{ maxHeight: height * 0.3 }}
@@ -162,6 +165,7 @@ export const ProfileForm = () => {
     );
 };
 
+// --- Styles ---
 const styles = StyleSheet.create({
     container: { flex: 1, paddingVertical: 24, paddingHorizontal: 16, gap: 24 },
     inputGroup: { marginBottom: 16 },
