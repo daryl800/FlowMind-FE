@@ -1,7 +1,15 @@
 // app/fortune.tsx
 import { useRouter } from "expo-router";
-import { useRef } from "react";
-import { Animated, Button, Easing, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import {
+    Animated,
+    Button,
+    Easing,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFortune } from "../hooks/useFortune";
 
@@ -9,7 +17,13 @@ import { useFortune } from "../hooks/useFortune";
    Helpers
 ------------------------------*/
 const renderDots = (count: number) => "●".repeat(count || 0);
-const fiveElementCN: Record<string, string> = { Wood: "木", Fire: "火", Earth: "土", Metal: "金", Water: "水" };
+const fiveElementCN: Record<string, string> = {
+    Wood: "木",
+    Fire: "火",
+    Earth: "土",
+    Metal: "金",
+    Water: "水",
+};
 const getFiveElementSummary = (strength: Record<string, number>) => {
     const sorted = Object.entries(strength).sort((a, b) => b[1] - a[1]);
     const strongest = sorted[0];
@@ -26,26 +40,55 @@ const getFiveElementSummary = (strength: Record<string, number>) => {
 ------------------------------*/
 export default function Fortune() {
     const router = useRouter();
-    const spinAnim = useRef(new Animated.Value(0)).current;
+
+    // 浮動動畫：上下 + 輕微縮放
+    const floatAnim = useRef(new Animated.Value(0)).current;
 
     // hook provides all state + fetch logic
-    const { profile, bazi, yearOutlook, lucky, regional, amulet, loading, loadFortune } = useFortune();
+    const { profile, bazi, yearOutlook, lucky, regional, amulet, loading, loadFortune } =
+        useFortune();
 
     /* -----------------------------
-       Spin Animation
+       Floating Animation
     ------------------------------*/
-    const startSpin = () => {
-        Animated.loop(
-            Animated.timing(spinAnim, {
-                toValue: 1,
-                duration: 1200,
-                easing: Easing.linear,
-                useNativeDriver: true,
-            })
-        ).start();
-    };
-    const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
-    if (loading) startSpin();
+    useEffect(() => {
+        if (!loading) {
+            // 停止並重置，避免離開 loading 還在跑
+            floatAnim.stopAnimation();
+            floatAnim.setValue(0);
+            return;
+        }
+
+        const floating = Animated.loop(
+            Animated.sequence([
+                Animated.timing(floatAnim, {
+                    toValue: -10,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(floatAnim, {
+                    toValue: 10,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        floating.start();
+
+        return () => {
+            floating.stop();
+            floatAnim.setValue(0);
+        };
+    }, [loading, floatAnim]);
+
+    const floatTranslateY = floatAnim;
+    const floatScale = floatAnim.interpolate({
+        inputRange: [-10, 0, 10],
+        outputRange: [1.02, 1, 1.02],
+    });
 
     /* -----------------------------
        Loading Screen
@@ -54,8 +97,17 @@ export default function Fortune() {
         return (
             <SafeAreaView style={styles.safe}>
                 <View style={styles.center}>
-                    <Animated.Text style={[styles.spinner, { transform: [{ rotate: spin }] }]}>✨</Animated.Text>
-                    <Text style={styles.loading}>正在載入你的命盤 ...</Text>
+                    <Animated.View
+                        style={{
+                            transform: [{ translateY: floatTranslateY }, { scale: floatScale }],
+                        }}
+                    >
+                        {/* 這裡可換成其他 emoji / icon */}
+                        <Text style={styles.bigIcon}>🔮</Text>
+                    </Animated.View>
+
+                    <Text style={styles.loading}>正在推演你的命盤 ...</Text>
+                    <Text style={styles.loadingSub}>為你整理八字、流年與開運建議</Text>
                 </View>
             </SafeAreaView>
         );
@@ -83,17 +135,33 @@ export default function Fortune() {
                     <View style={styles.row}>
                         <View style={styles.halfCard}>
                             <Text style={styles.cardTitle}>八字四柱</Text>
-                            <Text style={styles.cardText}>年柱：{bazi.pillars.year.gan_local}{bazi.pillars.year.zhi_local}</Text>
-                            <Text style={styles.cardText}>月柱：{bazi.pillars.month.gan_local}{bazi.pillars.month.zhi_local}</Text>
-                            <Text style={styles.cardText}>日柱：{bazi.pillars.day.gan_local}{bazi.pillars.day.zhi_local}（日主）</Text>
-                            <Text style={styles.cardText}>時柱：{bazi.pillars.hour.gan_local}{bazi.pillars.hour.zhi_local}</Text>
+                            <Text style={styles.cardText}>
+                                年柱：{bazi.pillars.year.gan_local}
+                                {bazi.pillars.year.zhi_local}
+                            </Text>
+                            <Text style={styles.cardText}>
+                                月柱：{bazi.pillars.month.gan_local}
+                                {bazi.pillars.month.zhi_local}
+                            </Text>
+                            <Text style={styles.cardText}>
+                                日柱：{bazi.pillars.day.gan_local}
+                                {bazi.pillars.day.zhi_local}（日主）
+                            </Text>
+                            <Text style={styles.cardText}>
+                                時柱：{bazi.pillars.hour.gan_local}
+                                {bazi.pillars.hour.zhi_local}
+                            </Text>
                         </View>
                         <View style={styles.halfCard}>
                             <Text style={styles.cardTitle}>五行分佈</Text>
                             {Object.entries(bazi.five_elements_strength).map(([key, value]) => (
-                                <Text key={key} style={styles.cardText}>{fiveElementCN[key]}：{renderDots(value)}</Text>
+                                <Text key={key} style={styles.cardText}>
+                                    {fiveElementCN[key]}：{renderDots(value)}
+                                </Text>
                             ))}
-                            <Text style={[styles.cardText, styles.italic]}>{getFiveElementSummary(bazi.five_elements_strength)}</Text>
+                            <Text style={[styles.cardText, styles.italic]}>
+                                {getFiveElementSummary(bazi.five_elements_strength)}
+                            </Text>
                         </View>
                     </View>
                 )}
@@ -102,8 +170,12 @@ export default function Fortune() {
                 {lucky && (
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>開運元素</Text>
-                        <Text style={styles.cardText}>🎨 幸運顏色：{lucky.colors.join("、")}</Text>
-                        <Text style={styles.cardText}>🔢 幸運數字：{lucky.numbers.join(" · ")}</Text>
+                        <Text style={styles.cardText}>
+                            🎨 幸運顏色：{lucky.colors.join("、")}
+                        </Text>
+                        <Text style={styles.cardText}>
+                            🔢 幸運數字：{lucky.numbers.join(" · ")}
+                        </Text>
                         {amulet && <Text style={styles.cardText}>🧿 開運物：{amulet}</Text>}
                     </View>
                 )}
@@ -112,10 +184,16 @@ export default function Fortune() {
                 {regional && (
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>🌏 地域 / 方向</Text>
-                        <Text style={styles.cardText}>宜：{regional.suitable_regions.join("、")}</Text>
-                        <Text style={styles.cardText}>忌：{regional.avoid_regions.join("、")}</Text>
+                        <Text style={styles.cardText}>
+                            宜：{regional.suitable_regions.join("、")}
+                        </Text>
+                        <Text style={styles.cardText}>
+                            忌：{regional.avoid_regions.join("、")}
+                        </Text>
                         <Text style={styles.cardText}>{regional.directions}</Text>
-                        <Text style={[styles.cardText, styles.italic]}>{regional.reasoning}</Text>
+                        <Text style={[styles.cardText, styles.italic]}>
+                            {regional.reasoning}
+                        </Text>
                     </View>
                 )}
 
@@ -128,12 +206,18 @@ export default function Fortune() {
                         <Text style={styles.cardText}>❤️ {yearOutlook.relationships}</Text>
                         <Text style={styles.cardText}>💼 {yearOutlook.career}</Text>
                         <Text style={styles.cardText}>📈 {yearOutlook.investment}</Text>
-                        <Text style={[styles.cardText, styles.italic]}>👉 {yearOutlook.key_advice}</Text>
+                        <Text style={[styles.cardText, styles.italic]}>
+                            👉 {yearOutlook.key_advice}
+                        </Text>
                     </View>
                 )}
 
                 <View style={{ marginBottom: 32 }}>
-                    <Button title="修改個人資料" onPress={() => router.push("/profile")} color="#FFA500" />
+                    <Button
+                        title="修改個人資料"
+                        onPress={() => router.push("/profile")}
+                        color="#FFA500"
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -146,9 +230,16 @@ export default function Fortune() {
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: "#121212" },
     scrollContent: { padding: 24, alignItems: "center" },
-    pageTitle: { fontSize: 28, fontWeight: "bold", color: "#fff", marginBottom: 16, textAlign: "center" },
+    pageTitle: {
+        fontSize: 28,
+        fontWeight: "bold",
+        color: "#fff",
+        marginBottom: 16,
+        textAlign: "center",
+    },
     card: {
-        width: "100%", maxWidth: 400,
+        width: "100%",
+        maxWidth: 400,
         borderRadius: 24,
         borderWidth: 1,
         borderColor: "#55555550",
@@ -163,7 +254,13 @@ const styles = StyleSheet.create({
     cardTitle: { fontSize: 18, fontWeight: "700", color: "#FFD700", marginBottom: 8 },
     cardText: { fontSize: 14, color: "#fff", lineHeight: 22 },
     italic: { fontStyle: "italic", color: "#AAAAAA", marginTop: 6 },
-    row: { flexDirection: "row", gap: 12, width: "100%", maxWidth: 400, marginBottom: 16 },
+    row: {
+        flexDirection: "row",
+        gap: 12,
+        width: "100%",
+        maxWidth: 400,
+        marginBottom: 16,
+    },
     halfCard: {
         flex: 1,
         borderRadius: 20,
@@ -173,6 +270,13 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    loading: { fontSize: 16, color: "#888", marginTop: 12 },
-    spinner: { fontSize: 40, color: "#FFA500", marginBottom: 12 },
+    loading: { fontSize: 16, color: "#ddd", marginTop: 16 },
+    loadingSub: { fontSize: 13, color: "#888", marginTop: 6 },
+    bigIcon: {
+        fontSize: 56,
+        color: "#FFA500",
+        textShadowColor: "#FFA50066",
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
 });
