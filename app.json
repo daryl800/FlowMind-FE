@@ -24,7 +24,7 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "basePath": "/FlowMind-FE/"
+      "basePath": "FlowMind-FE"
     },
     "plugins": [
       "expo-router",
