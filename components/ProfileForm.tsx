@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { CalendarDays, MapPin, Sparkles, User } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Pressable,
@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import ModalSelector from "react-native-modal-selector";
 
-// --- Constants ---
 const locations = [
     { label: "香港", value: "Asia/Hong_Kong" },
     { label: "上海", value: "Asia/Shanghai" },
@@ -37,24 +36,37 @@ const timeItems = [
     }),
 ];
 
-// --- Component ---
 export const ProfileForm = () => {
     const router = useRouter();
     const { height } = useWindowDimensions();
 
-    // --- State ---
     const [date, setDate] = useState(""); // YYYY-MM-DD
     const [hour, setHour] = useState("12:00"); // default 不知道
     const [location, setLocation] = useState("Asia/Hong_Kong");
     const [gender, setGender] = useState<"男" | "女" | "">("");
     const [submitting, setSubmitting] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // --- Handlers ---
+    // --- Load saved profile on mount ---
+    useEffect(() => {
+        const loadProfile = async () => {
+            const saved = await AsyncStorage.getItem("flowmind_profile");
+            if (saved) {
+                const p = JSON.parse(saved);
+                setDate(p.dob || "");
+                setHour(p.tob || "12:00");
+                setLocation(p.pob || "Asia/Hong_Kong");
+                setGender(p.gender || "");
+            }
+            setLoading(false);
+        };
+        loadProfile();
+    }, []);
+
     const submit = async () => {
         if (!date || !gender) return;
 
         setSubmitting(true);
-
         const profile = {
             dob: date,
             tob: hour,
@@ -62,16 +74,22 @@ export const ProfileForm = () => {
             gender,
             createdAt: Date.now(),
         };
-
         await AsyncStorage.setItem("flowmind_profile", JSON.stringify(profile));
 
         setTimeout(() => {
             setSubmitting(false);
-            router.push("/daily");
+            router.push("/fortune"); // corrected typo from "fortue"
         }, 800);
     };
 
-    // --- Render ---
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+                <ActivityIndicator size="large" color="#FFA500" />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Birth Date */}
